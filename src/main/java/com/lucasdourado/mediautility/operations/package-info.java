@@ -1,7 +1,6 @@
 /**
- * Operation lifecycle boundary for coordinating media utility work.
+ * Operation lifecycle domain model for media utility work.
  *
- * <p>Domain models, status transitions, and orchestration behavior will be
- * implemented by later dedicated tasks.</p>
+ * <p>Orchestration behavior is implemented by later dedicated tasks.</p>
  */
 package com.lucasdourado.mediautility.operations;
