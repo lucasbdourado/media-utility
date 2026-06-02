@@ -48,7 +48,7 @@ class OperationTest {
 				"result.mp3",
 				"audio/mpeg",
 				1024L,
-				"C:\\tmp\\media-utility\\operation-1\\result.mp3");
+				"operations/operation-1/result.mp3");
 		Instant completedAt = Instant.parse("2026-06-02T12:03:00Z");
 		Instant expiresAt = Instant.parse("2026-06-02T13:03:00Z");
 
@@ -85,11 +85,11 @@ class OperationTest {
 				"download.mp4",
 				"video/mp4",
 				2048L,
-				"C:\\tmp\\media-utility\\operation-2\\download.mp4");
+				"operations/operation-2/download.mp4");
 
 		assertEquals("download.mp4", result.getFileName());
 		assertEquals("video/mp4", result.getContentType());
 		assertEquals(2048L, result.getSizeBytes());
-		assertEquals("C:\\tmp\\media-utility\\operation-2\\download.mp4", result.getInternalPath());
+		assertEquals("operations/operation-2/download.mp4", result.getInternalPath());
 	}
 }
