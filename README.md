@@ -47,4 +47,10 @@ On Windows PowerShell:
 * Tasks separadas, mas criadas vazias
 * Criar arquivo de state e controle de tasks para ver quais tasks estão bloqueadas
 * Salvar alguns documentos em etapas sem confirmação
+* Skill `create-tasks` precisa ter uma validação de tasks para garantir que todas as tasks foram criadas da forma correta, e preenchidas, de acordo com o project-planning
+* Reduzir a quantidade e a necessidade de buscas e referencias, somente para a validação inicial.
+* Validar a necessidade do uso da tech-spec
+* Criação de rule, ou documento principal para busca de e resposta de padrão de código e arquitetura
+* Não fugir do que foi proposto, se algo está mal esclarecido, pergunte, e as respostas viram documentos
+* Criar ferramentas para testes
 
