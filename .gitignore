@@ -1,0 +1,21 @@
+# IDE and local workspace files
+.idea/
+*.iml
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Logs and temporary files
+*.log
+tmp/
+temp/
+
+# Build outputs
+dist/
+build/
+out/
+/.idea
+/docs
+/.agents
+/AGENTS.md
