@@ -50,6 +50,7 @@ class OperationServiceTest {
 	private Mp4UploadValidator mp4UploadValidator;
 	private UrlDownloadValidator urlDownloadValidator;
 	private BackgroundConversionExecutor backgroundConversionExecutor;
+	private BackgroundDownloadExecutor backgroundDownloadExecutor;
 	private OperationService operationService;
 
 	@BeforeEach
@@ -58,7 +59,8 @@ class OperationServiceTest {
 		mp4UploadValidator = mock(Mp4UploadValidator.class);
 		urlDownloadValidator = mock(UrlDownloadValidator.class);
 		backgroundConversionExecutor = mock(BackgroundConversionExecutor.class);
-		operationService = new OperationService(operationRepository, mp4UploadValidator, urlDownloadValidator, backgroundConversionExecutor, clock);
+		backgroundDownloadExecutor = mock(BackgroundDownloadExecutor.class);
+		operationService = new OperationService(operationRepository, mp4UploadValidator, urlDownloadValidator, backgroundConversionExecutor, backgroundDownloadExecutor, clock);
 	}
 
 	@Nested
@@ -162,14 +164,32 @@ class OperationServiceTest {
 	class CreateDownloadTests {
 
 		@Test
-		void callsValidatorAndThrowsUnsupportedOperationWhenValid() throws Exception {
+		void successfullyCreatesDownloadAndTriggersAsync() throws Exception {
 			URI url = new URI("https://www.youtube.com/watch?v=dQw4w9WgXcQ");
 
-			assertThatThrownBy(() -> operationService.createDownload(url))
-					.isInstanceOf(UnsupportedOperationException.class)
-					.hasMessageContaining("URL download operation is not supported yet");
+			Operation savedOperation = mock(Operation.class);
+			when(savedOperation.getId()).thenReturn(42L);
+			when(operationRepository.save(any(Operation.class))).thenReturn(savedOperation);
 
+			PublicOperationResponse response = operationService.createDownload(url);
+
+			assertThat(response.operationId()).isEqualTo(42L);
+			assertThat(response.type()).isEqualTo(OperationType.URL_DOWNLOAD);
+			assertThat(response.status()).isEqualTo(OperationStatus.PENDING);
+			assertThat(response.createdAt()).isEqualTo(NOW);
+
+			// Verify validator was called
 			verify(urlDownloadValidator).validate(url);
+
+			// Verify operation was saved in database
+			ArgumentCaptor<Operation> operationCaptor = ArgumentCaptor.forClass(Operation.class);
+			verify(operationRepository).save(operationCaptor.capture());
+			Operation capturedOperation = operationCaptor.getValue();
+			assertThat(capturedOperation.getType()).isEqualTo(OperationType.URL_DOWNLOAD);
+			assertThat(capturedOperation.getStatus()).isEqualTo(OperationStatus.PENDING);
+
+			// Verify async download executor was triggered
+			verify(backgroundDownloadExecutor).executeDownload(42L, url);
 		}
 
 		@Test

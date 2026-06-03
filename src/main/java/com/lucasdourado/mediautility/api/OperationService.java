@@ -38,6 +38,7 @@ public class OperationService implements OperationApiPort {
 	private final Mp4UploadValidator mp4UploadValidator;
 	private final UrlDownloadValidator urlDownloadValidator;
 	private final BackgroundConversionExecutor backgroundConversionExecutor;
+	private final BackgroundDownloadExecutor backgroundDownloadExecutor;
 	private final Clock clock;
 
 	@Autowired
@@ -45,8 +46,9 @@ public class OperationService implements OperationApiPort {
 			OperationRepository operationRepository,
 			Mp4UploadValidator mp4UploadValidator,
 			UrlDownloadValidator urlDownloadValidator,
-			BackgroundConversionExecutor backgroundConversionExecutor) {
-		this(operationRepository, mp4UploadValidator, urlDownloadValidator, backgroundConversionExecutor, Clock.systemUTC());
+			BackgroundConversionExecutor backgroundConversionExecutor,
+			BackgroundDownloadExecutor backgroundDownloadExecutor) {
+		this(operationRepository, mp4UploadValidator, urlDownloadValidator, backgroundConversionExecutor, backgroundDownloadExecutor, Clock.systemUTC());
 	}
 
 	OperationService(
@@ -54,11 +56,13 @@ public class OperationService implements OperationApiPort {
 			Mp4UploadValidator mp4UploadValidator,
 			UrlDownloadValidator urlDownloadValidator,
 			BackgroundConversionExecutor backgroundConversionExecutor,
+			BackgroundDownloadExecutor backgroundDownloadExecutor,
 			Clock clock) {
 		this.operationRepository = operationRepository;
 		this.mp4UploadValidator = mp4UploadValidator;
 		this.urlDownloadValidator = urlDownloadValidator;
 		this.backgroundConversionExecutor = backgroundConversionExecutor;
+		this.backgroundDownloadExecutor = backgroundDownloadExecutor;
 		this.clock = clock;
 	}
 
@@ -112,7 +116,14 @@ public class OperationService implements OperationApiPort {
 		catch (UrlValidationException ex) {
 			throw mapValidationException(ex);
 		}
-		throw new UnsupportedOperationException("URL download operation is not supported yet.");
+
+		Instant createdAt = clock.instant();
+		Operation operation = Operation.create(OperationType.URL_DOWNLOAD, createdAt);
+		operation = operationRepository.save(operation);
+
+		backgroundDownloadExecutor.executeDownload(operation.getId(), url);
+
+		return PublicOperationResponse.pending(operation.getId(), OperationType.URL_DOWNLOAD, createdAt);
 	}
 
 	@Override
