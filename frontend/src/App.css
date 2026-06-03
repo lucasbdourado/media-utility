@@ -165,6 +165,98 @@ h2 {
   line-height: 1.5;
 }
 
+.upload-form {
+  display: grid;
+  gap: 16px;
+  margin-top: 24px;
+}
+
+.file-control {
+  display: grid;
+  gap: 10px;
+  color: #15201c;
+  font-weight: 700;
+}
+
+.file-control input {
+  width: 100%;
+  border: 1px solid #cdd8d1;
+  border-radius: 8px;
+  background: #f8faf7;
+  color: #15201c;
+  font: inherit;
+  padding: 12px;
+}
+
+.file-control input:focus-visible,
+.submit-button:focus-visible {
+  outline: 3px solid #b7d4ef;
+  outline-offset: 3px;
+}
+
+.form-feedback {
+  margin: 0;
+  border: 1px solid #d9a7a1;
+  border-radius: 8px;
+  background: #fff5f3;
+  color: #8a2f24;
+  font-weight: 700;
+  line-height: 1.5;
+  padding: 12px 14px;
+}
+
+.selected-file,
+.ready-surface {
+  border: 1px solid #d7ded8;
+  border-radius: 8px;
+  background: #f8faf7;
+  padding: 16px;
+}
+
+.selected-file {
+  display: grid;
+  gap: 6px;
+}
+
+.selected-file span {
+  color: #2f6f68;
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0;
+  text-transform: uppercase;
+}
+
+.selected-file strong {
+  overflow-wrap: anywhere;
+}
+
+.selected-file p {
+  margin: 0;
+  color: #53625d;
+}
+
+.ready-surface {
+  color: #53625d;
+  line-height: 1.5;
+}
+
+.submit-button {
+  min-height: 46px;
+  width: fit-content;
+  border: 1px solid #2f6f68;
+  border-radius: 8px;
+  background: #2f6f68;
+  color: #ffffff;
+  cursor: pointer;
+  font: inherit;
+  font-weight: 700;
+  padding: 0 18px;
+}
+
+.submit-button:hover {
+  background: #255a54;
+}
+
 .status-panel ul {
   display: grid;
   gap: 10px;

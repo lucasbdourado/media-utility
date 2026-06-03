@@ -14,7 +14,8 @@ describe("App", () => {
       "false",
     );
     expect(screen.getByRole("heading", { name: /mp4-to-mp3 workspace/i })).toBeInTheDocument();
-    expect(screen.getByLabelText(/mp4 upload form placeholder/i)).toBeInTheDocument();
+    expect(screen.getByRole("form", { name: /mp4 upload form/i })).toBeInTheDocument();
+    expect(screen.getByLabelText(/mp4 file/i)).toHaveAttribute("accept", ".mp4,video/mp4");
   });
 
   it("lets users switch to URL download and back without navigation", () => {
@@ -38,6 +39,50 @@ describe("App", () => {
 
     expect(conversionOption).toHaveAttribute("aria-pressed", "true");
     expect(screen.getByRole("heading", { name: /mp4-to-mp3 workspace/i })).toBeInTheDocument();
+    expect(screen.getByRole("form", { name: /mp4 upload form/i })).toBeInTheDocument();
+  });
+
+  it("shows required-file feedback when submitting without a selected file", () => {
+    render(<App />);
+
+    fireEvent.click(screen.getByRole("button", { name: /prepare conversion/i }));
+
+    expect(screen.getByRole("alert")).toHaveTextContent(/choose an mp4 file before continuing/i);
+    expect(screen.queryByLabelText(/selected mp4 file/i)).not.toBeInTheDocument();
+  });
+
+  it("rejects a non-MP4 file and keeps the ready state inactive", () => {
+    render(<App />);
+
+    const input = screen.getByLabelText(/mp4 file/i);
+    const file = new File(["not media"], "notes.txt", { type: "text/plain" });
+
+    fireEvent.change(input, { target: { files: [file] } });
+
+    expect(screen.getByRole("alert")).toHaveTextContent(/select an mp4 file to continue/i);
+    expect(screen.queryByText("notes.txt")).not.toBeInTheDocument();
+    expect(screen.queryByText(/ready for the later conversion submission step/i)).not.toBeInTheDocument();
+  });
+
+  it("shows selected MP4 file information and can reach submit-ready state", () => {
+    render(<App />);
+
+    const input = screen.getByLabelText(/mp4 file/i);
+    const file = new File([new Uint8Array(1_572_864)], "sample.MP4", {
+      type: "application/octet-stream",
+    });
+
+    fireEvent.change(input, { target: { files: [file] } });
+
+    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+    expect(screen.getByLabelText(/selected mp4 file/i)).toHaveTextContent("sample.MP4");
+    expect(screen.getByText("1.5 MB")).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: /prepare conversion/i }));
+
+    expect(
+      screen.getByText(/this mp4 is ready for the later conversion submission step/i),
+    ).toBeInTheDocument();
   });
 
   it("renders static shared operation state surfaces", () => {

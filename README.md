@@ -56,3 +56,4 @@ On Windows PowerShell:
 * Gerar ADRs se realmente for necessário
 * Modelo de IA tem que se ater mais a instrução do que busca e raciocínio
 * Não gere imagens
+* Componentização, e estrutura do front-end
