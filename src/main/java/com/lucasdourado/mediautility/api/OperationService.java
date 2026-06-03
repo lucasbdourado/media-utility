@@ -18,6 +18,8 @@ import org.springframework.web.multipart.MultipartFile;
 
 import com.lucasdourado.mediautility.media.conversion.Mp4UploadValidator;
 import com.lucasdourado.mediautility.media.conversion.Mp4ValidationException;
+import com.lucasdourado.mediautility.media.download.UrlDownloadValidator;
+import com.lucasdourado.mediautility.media.download.UrlValidationException;
 import com.lucasdourado.mediautility.operations.Operation;
 import com.lucasdourado.mediautility.operations.OperationStatus;
 import com.lucasdourado.mediautility.operations.OperationType;
@@ -34,6 +36,7 @@ public class OperationService implements OperationApiPort {
 
 	private final OperationRepository operationRepository;
 	private final Mp4UploadValidator mp4UploadValidator;
+	private final UrlDownloadValidator urlDownloadValidator;
 	private final BackgroundConversionExecutor backgroundConversionExecutor;
 	private final Clock clock;
 
@@ -41,17 +44,20 @@ public class OperationService implements OperationApiPort {
 	public OperationService(
 			OperationRepository operationRepository,
 			Mp4UploadValidator mp4UploadValidator,
+			UrlDownloadValidator urlDownloadValidator,
 			BackgroundConversionExecutor backgroundConversionExecutor) {
-		this(operationRepository, mp4UploadValidator, backgroundConversionExecutor, Clock.systemUTC());
+		this(operationRepository, mp4UploadValidator, urlDownloadValidator, backgroundConversionExecutor, Clock.systemUTC());
 	}
 
 	OperationService(
 			OperationRepository operationRepository,
 			Mp4UploadValidator mp4UploadValidator,
+			UrlDownloadValidator urlDownloadValidator,
 			BackgroundConversionExecutor backgroundConversionExecutor,
 			Clock clock) {
 		this.operationRepository = operationRepository;
 		this.mp4UploadValidator = mp4UploadValidator;
+		this.urlDownloadValidator = urlDownloadValidator;
 		this.backgroundConversionExecutor = backgroundConversionExecutor;
 		this.clock = clock;
 	}
@@ -100,6 +106,12 @@ public class OperationService implements OperationApiPort {
 
 	@Override
 	public PublicOperationResponse createDownload(URI url) {
+		try {
+			urlDownloadValidator.validate(url);
+		}
+		catch (UrlValidationException ex) {
+			throw mapValidationException(ex);
+		}
 		throw new UnsupportedOperationException("URL download operation is not supported yet.");
 	}
 
@@ -162,4 +174,11 @@ public class OperationService implements OperationApiPort {
 						PublicErrorResponse.validation("Request validation failed.", "file", ex.getMessage()));
 		}
 	}
+
+	private ApiException mapValidationException(UrlValidationException ex) {
+		return new ApiException(
+				HttpStatus.BAD_REQUEST,
+				PublicErrorResponse.validation("Request validation failed.", "url", ex.getMessage()));
+	}
 }
+

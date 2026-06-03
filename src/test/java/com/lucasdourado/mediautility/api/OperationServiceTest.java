@@ -31,12 +31,15 @@ import org.springframework.test.util.ReflectionTestUtils;
 import com.lucasdourado.mediautility.media.conversion.Mp4ToMp3Converter;
 import com.lucasdourado.mediautility.media.conversion.Mp4UploadValidator;
 import com.lucasdourado.mediautility.media.conversion.Mp4ValidationException;
+import com.lucasdourado.mediautility.media.download.UrlDownloadValidator;
+import com.lucasdourado.mediautility.media.download.UrlValidationException;
 import com.lucasdourado.mediautility.operations.Operation;
 import com.lucasdourado.mediautility.operations.OperationStatus;
 import com.lucasdourado.mediautility.operations.OperationType;
 import com.lucasdourado.mediautility.operations.ResultFileMetadata;
 import com.lucasdourado.mediautility.persistence.OperationRepository;
 import com.lucasdourado.mediautility.storage.TemporaryStorageService;
+import java.net.URI;
 
 class OperationServiceTest {
 
@@ -45,6 +48,7 @@ class OperationServiceTest {
 
 	private OperationRepository operationRepository;
 	private Mp4UploadValidator mp4UploadValidator;
+	private UrlDownloadValidator urlDownloadValidator;
 	private BackgroundConversionExecutor backgroundConversionExecutor;
 	private OperationService operationService;
 
@@ -52,8 +56,9 @@ class OperationServiceTest {
 	void setUp() {
 		operationRepository = mock(OperationRepository.class);
 		mp4UploadValidator = mock(Mp4UploadValidator.class);
+		urlDownloadValidator = mock(UrlDownloadValidator.class);
 		backgroundConversionExecutor = mock(BackgroundConversionExecutor.class);
-		operationService = new OperationService(operationRepository, mp4UploadValidator, backgroundConversionExecutor, clock);
+		operationService = new OperationService(operationRepository, mp4UploadValidator, urlDownloadValidator, backgroundConversionExecutor, clock);
 	}
 
 	@Nested
@@ -150,6 +155,39 @@ class OperationServiceTest {
 					});
 
 			verifyNoInteractions(operationRepository, backgroundConversionExecutor);
+		}
+	}
+
+	@Nested
+	class CreateDownloadTests {
+
+		@Test
+		void callsValidatorAndThrowsUnsupportedOperationWhenValid() throws Exception {
+			URI url = new URI("https://www.youtube.com/watch?v=dQw4w9WgXcQ");
+
+			assertThatThrownBy(() -> operationService.createDownload(url))
+					.isInstanceOf(UnsupportedOperationException.class)
+					.hasMessageContaining("URL download operation is not supported yet");
+
+			verify(urlDownloadValidator).validate(url);
+		}
+
+		@Test
+		void throwsBadRequestValidationWhenUrlIsInvalid() throws Exception {
+			URI url = new URI("http://localhost");
+			doThrow(new UrlValidationException(UrlValidationException.ErrorReason.SSRF_ATTEMPT, "URL is not allowed."))
+					.when(urlDownloadValidator).validate(url);
+
+			assertThatThrownBy(() -> operationService.createDownload(url))
+					.isInstanceOf(ApiException.class)
+					.satisfies(ex -> {
+						ApiException apiException = (ApiException) ex;
+						assertThat(apiException.getStatus()).isEqualTo(HttpStatus.BAD_REQUEST);
+						assertThat(apiException.getError().code()).isEqualTo(PublicErrorCode.VALIDATION_ERROR);
+						assertThat(apiException.getError().details()).hasSize(1);
+						assertThat(apiException.getError().details().get(0).field()).isEqualTo("url");
+						assertThat(apiException.getError().details().get(0).message()).isEqualTo("URL is not allowed.");
+					});
 		}
 	}
 
