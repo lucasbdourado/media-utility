@@ -14,6 +14,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
@@ -26,6 +27,7 @@ public class LocalJvmProcessExecutor implements ProcessExecutor {
 	private final int outputCaptureLimitBytes;
 	private final Clock clock;
 
+	@Autowired
 	public LocalJvmProcessExecutor(
 			@Value("${media-utility.process.default-timeout:5m}") Duration defaultTimeout,
 			@Value("${media-utility.process.output-capture-limit-bytes:65536}") int outputCaptureLimitBytes) {
