@@ -12,9 +12,13 @@ import java.time.Instant;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.core.io.FileSystemResource;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
+
+import com.lucasdourado.mediautility.storage.TemporaryStorageService;
 
 import com.lucasdourado.mediautility.media.conversion.Mp4UploadValidator;
 import com.lucasdourado.mediautility.media.conversion.Mp4ValidationException;
@@ -23,6 +27,7 @@ import com.lucasdourado.mediautility.media.download.UrlValidationException;
 import com.lucasdourado.mediautility.operations.Operation;
 import com.lucasdourado.mediautility.operations.OperationStatus;
 import com.lucasdourado.mediautility.operations.OperationType;
+import com.lucasdourado.mediautility.operations.ResultFileMetadata;
 import com.lucasdourado.mediautility.persistence.OperationRepository;
 
 /**
@@ -39,6 +44,7 @@ public class OperationService implements OperationApiPort {
 	private final UrlDownloadValidator urlDownloadValidator;
 	private final BackgroundConversionExecutor backgroundConversionExecutor;
 	private final BackgroundDownloadExecutor backgroundDownloadExecutor;
+	private final TemporaryStorageService temporaryStorageService;
 	private final Clock clock;
 
 	@Autowired
@@ -47,8 +53,9 @@ public class OperationService implements OperationApiPort {
 			Mp4UploadValidator mp4UploadValidator,
 			UrlDownloadValidator urlDownloadValidator,
 			BackgroundConversionExecutor backgroundConversionExecutor,
-			BackgroundDownloadExecutor backgroundDownloadExecutor) {
-		this(operationRepository, mp4UploadValidator, urlDownloadValidator, backgroundConversionExecutor, backgroundDownloadExecutor, Clock.systemUTC());
+			BackgroundDownloadExecutor backgroundDownloadExecutor,
+			TemporaryStorageService temporaryStorageService) {
+		this(operationRepository, mp4UploadValidator, urlDownloadValidator, backgroundConversionExecutor, backgroundDownloadExecutor, temporaryStorageService, Clock.systemUTC());
 	}
 
 	OperationService(
@@ -57,12 +64,14 @@ public class OperationService implements OperationApiPort {
 			UrlDownloadValidator urlDownloadValidator,
 			BackgroundConversionExecutor backgroundConversionExecutor,
 			BackgroundDownloadExecutor backgroundDownloadExecutor,
+			TemporaryStorageService temporaryStorageService,
 			Clock clock) {
 		this.operationRepository = operationRepository;
 		this.mp4UploadValidator = mp4UploadValidator;
 		this.urlDownloadValidator = urlDownloadValidator;
 		this.backgroundConversionExecutor = backgroundConversionExecutor;
 		this.backgroundDownloadExecutor = backgroundDownloadExecutor;
+		this.temporaryStorageService = temporaryStorageService;
 		this.clock = clock;
 	}
 
@@ -163,7 +172,52 @@ public class OperationService implements OperationApiPort {
 
 	@Override
 	public ResultDownload getResult(Long operationId) {
-		throw new UnsupportedOperationException("Retrieving conversion result is not supported yet.");
+		Operation operation = operationRepository.findById(operationId)
+				.orElseThrow(() -> new ApiException(
+						HttpStatus.NOT_FOUND,
+						new PublicErrorResponse(PublicErrorCode.NOT_FOUND, "Operation not found: " + operationId)));
+
+		if (operation.getStatus() != OperationStatus.COMPLETED) {
+			throw new ApiException(
+					HttpStatus.CONFLICT,
+					new PublicErrorResponse(PublicErrorCode.CONFLICT, "Result file is not available because operation status is " + operation.getStatus()));
+		}
+
+		ResultFileMetadata resultFile = operation.getResultFile();
+		if (resultFile == null) {
+			throw new ApiException(
+					HttpStatus.NOT_FOUND,
+					new PublicErrorResponse(PublicErrorCode.NOT_FOUND, "Operation has no result file metadata: " + operationId));
+		}
+
+		if (operation.getExpiresAt() != null && operation.getExpiresAt().isBefore(clock.instant())) {
+			throw new ApiException(
+					HttpStatus.CONFLICT,
+					new PublicErrorResponse(PublicErrorCode.CONFLICT, "Result file has expired."));
+		}
+
+		Path path = temporaryStorageService.resolve(resultFile.getInternalPath());
+		if (!Files.exists(path)) {
+			throw new ApiException(
+					HttpStatus.NOT_FOUND,
+					new PublicErrorResponse(PublicErrorCode.NOT_FOUND, "Result file does not exist on disk: " + resultFile.getFileName()));
+		}
+
+		FileSystemResource resource = new FileSystemResource(path);
+
+		MediaType mediaType;
+		String contentType = resultFile.getContentType();
+		if (contentType == null || contentType.isBlank()) {
+			mediaType = MediaType.APPLICATION_OCTET_STREAM;
+		} else {
+			try {
+				mediaType = MediaType.parseMediaType(contentType);
+			} catch (Exception ex) {
+				mediaType = MediaType.APPLICATION_OCTET_STREAM;
+			}
+		}
+
+		return new ResultDownload(resource, resultFile.getFileName(), mediaType, resultFile.getSizeBytes() != null ? resultFile.getSizeBytes() : 0L);
 	}
 
 	private ApiException mapValidationException(Mp4ValidationException ex) {

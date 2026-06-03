@@ -40,6 +40,7 @@ import com.lucasdourado.mediautility.operations.ResultFileMetadata;
 import com.lucasdourado.mediautility.persistence.OperationRepository;
 import com.lucasdourado.mediautility.storage.TemporaryStorageService;
 import java.net.URI;
+import org.springframework.http.MediaType;
 
 class OperationServiceTest {
 
@@ -51,6 +52,7 @@ class OperationServiceTest {
 	private UrlDownloadValidator urlDownloadValidator;
 	private BackgroundConversionExecutor backgroundConversionExecutor;
 	private BackgroundDownloadExecutor backgroundDownloadExecutor;
+	private TemporaryStorageService temporaryStorageService;
 	private OperationService operationService;
 
 	@BeforeEach
@@ -60,7 +62,8 @@ class OperationServiceTest {
 		urlDownloadValidator = mock(UrlDownloadValidator.class);
 		backgroundConversionExecutor = mock(BackgroundConversionExecutor.class);
 		backgroundDownloadExecutor = mock(BackgroundDownloadExecutor.class);
-		operationService = new OperationService(operationRepository, mp4UploadValidator, urlDownloadValidator, backgroundConversionExecutor, backgroundDownloadExecutor, clock);
+		temporaryStorageService = mock(TemporaryStorageService.class);
+		operationService = new OperationService(operationRepository, mp4UploadValidator, urlDownloadValidator, backgroundConversionExecutor, backgroundDownloadExecutor, temporaryStorageService, clock);
 	}
 
 	@Nested
@@ -360,6 +363,138 @@ class OperationServiceTest {
 
 			// Verify source file cleaned up
 			assertThat(Files.exists(sourcePath)).isFalse();
+		}
+	}
+
+	@Nested
+	class GetResultTests {
+
+		@Test
+		void successfullyRetrievesResultDownload(@TempDir Path tempDir) throws IOException {
+			Path file = tempDir.resolve("audio.mp3");
+			Files.writeString(file, "dummy content");
+
+			Operation operation = Operation.create(OperationType.CONVERSION, NOW);
+			ReflectionTestUtils.setField(operation, "id", 1L);
+			ResultFileMetadata resultFile = new ResultFileMetadata("audio.mp3", "audio/mpeg", 1000L, "keys/audio.mp3");
+			operation.complete(resultFile, NOW.plusSeconds(10), NOW.plusSeconds(3600));
+
+			when(operationRepository.findById(1L)).thenReturn(Optional.of(operation));
+			when(temporaryStorageService.resolve("keys/audio.mp3")).thenReturn(file);
+
+			OperationApiPort.ResultDownload result = operationService.getResult(1L);
+
+			assertThat(result).isNotNull();
+			assertThat(result.resource().exists()).isTrue();
+			assertThat(result.fileName()).isEqualTo("audio.mp3");
+			assertThat(result.contentType()).isEqualTo(MediaType.parseMediaType("audio/mpeg"));
+			assertThat(result.contentLength()).isEqualTo(1000L);
+		}
+
+		@Test
+		void throwsNotFoundWhenOperationDoesNotExist() {
+			when(operationRepository.findById(99L)).thenReturn(Optional.empty());
+
+			assertThatThrownBy(() -> operationService.getResult(99L))
+					.isInstanceOf(ApiException.class)
+					.satisfies(ex -> {
+						ApiException apiException = (ApiException) ex;
+						assertThat(apiException.getStatus()).isEqualTo(HttpStatus.NOT_FOUND);
+						assertThat(apiException.getError().code()).isEqualTo(PublicErrorCode.NOT_FOUND);
+						assertThat(apiException.getError().message()).isEqualTo("Operation not found: 99");
+					});
+		}
+
+		@Test
+		void throwsConflictWhenOperationIsNotCompleted() {
+			Operation operation = Operation.create(OperationType.CONVERSION, NOW);
+			ReflectionTestUtils.setField(operation, "id", 1L);
+			when(operationRepository.findById(1L)).thenReturn(Optional.of(operation));
+
+			assertThatThrownBy(() -> operationService.getResult(1L))
+					.isInstanceOf(ApiException.class)
+					.satisfies(ex -> {
+						ApiException apiException = (ApiException) ex;
+						assertThat(apiException.getStatus()).isEqualTo(HttpStatus.CONFLICT);
+						assertThat(apiException.getError().code()).isEqualTo(PublicErrorCode.CONFLICT);
+						assertThat(apiException.getError().message()).isEqualTo("Result file is not available because operation status is PENDING");
+					});
+		}
+
+		@Test
+		void throwsNotFoundWhenResultMetadataIsNull() {
+			Operation operation = mock(Operation.class);
+			when(operation.getId()).thenReturn(1L);
+			when(operation.getStatus()).thenReturn(OperationStatus.COMPLETED);
+			when(operation.getResultFile()).thenReturn(null);
+			when(operationRepository.findById(1L)).thenReturn(Optional.of(operation));
+
+			assertThatThrownBy(() -> operationService.getResult(1L))
+					.isInstanceOf(ApiException.class)
+					.satisfies(ex -> {
+						ApiException apiException = (ApiException) ex;
+						assertThat(apiException.getStatus()).isEqualTo(HttpStatus.NOT_FOUND);
+						assertThat(apiException.getError().code()).isEqualTo(PublicErrorCode.NOT_FOUND);
+						assertThat(apiException.getError().message()).isEqualTo("Operation has no result file metadata: 1");
+					});
+		}
+
+		@Test
+		void throwsConflictWhenResultIsExpired() {
+			Operation operation = Operation.create(OperationType.CONVERSION, NOW);
+			ReflectionTestUtils.setField(operation, "id", 1L);
+			ResultFileMetadata resultFile = new ResultFileMetadata("audio.mp3", "audio/mpeg", 1000L, "keys/audio.mp3");
+			operation.complete(resultFile, NOW.minusSeconds(20), NOW.minusSeconds(10));
+
+			when(operationRepository.findById(1L)).thenReturn(Optional.of(operation));
+
+			assertThatThrownBy(() -> operationService.getResult(1L))
+					.isInstanceOf(ApiException.class)
+					.satisfies(ex -> {
+						ApiException apiException = (ApiException) ex;
+						assertThat(apiException.getStatus()).isEqualTo(HttpStatus.CONFLICT);
+						assertThat(apiException.getError().code()).isEqualTo(PublicErrorCode.CONFLICT);
+						assertThat(apiException.getError().message()).isEqualTo("Result file has expired.");
+					});
+		}
+
+		@Test
+		void throwsNotFoundWhenFileDoesNotExistOnDisk() {
+			Operation operation = Operation.create(OperationType.CONVERSION, NOW);
+			ReflectionTestUtils.setField(operation, "id", 1L);
+			ResultFileMetadata resultFile = new ResultFileMetadata("audio.mp3", "audio/mpeg", 1000L, "keys/audio.mp3");
+			operation.complete(resultFile, NOW.plusSeconds(10), NOW.plusSeconds(3600));
+
+			when(operationRepository.findById(1L)).thenReturn(Optional.of(operation));
+			when(temporaryStorageService.resolve("keys/audio.mp3")).thenReturn(Path.of("nonexistent.mp3"));
+
+			assertThatThrownBy(() -> operationService.getResult(1L))
+					.isInstanceOf(ApiException.class)
+					.satisfies(ex -> {
+						ApiException apiException = (ApiException) ex;
+						assertThat(apiException.getStatus()).isEqualTo(HttpStatus.NOT_FOUND);
+						assertThat(apiException.getError().code()).isEqualTo(PublicErrorCode.NOT_FOUND);
+						assertThat(apiException.getError().message()).isEqualTo("Result file does not exist on disk: audio.mp3");
+					});
+		}
+
+		@Test
+		void degradesToOctetStreamWhenContentTypeIsInvalid(@TempDir Path tempDir) throws IOException {
+			Path file = tempDir.resolve("audio.mp3");
+			Files.writeString(file, "dummy content");
+
+			Operation operation = Operation.create(OperationType.CONVERSION, NOW);
+			ReflectionTestUtils.setField(operation, "id", 1L);
+			ResultFileMetadata resultFile = new ResultFileMetadata("audio.mp3", "invalid/mime/type", 1000L, "keys/audio.mp3");
+			operation.complete(resultFile, NOW.plusSeconds(10), NOW.plusSeconds(3600));
+
+			when(operationRepository.findById(1L)).thenReturn(Optional.of(operation));
+			when(temporaryStorageService.resolve("keys/audio.mp3")).thenReturn(file);
+
+			OperationApiPort.ResultDownload result = operationService.getResult(1L);
+
+			assertThat(result).isNotNull();
+			assertThat(result.contentType()).isEqualTo(MediaType.APPLICATION_OCTET_STREAM);
 		}
 	}
 }
