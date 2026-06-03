@@ -57,3 +57,4 @@ On Windows PowerShell:
 * Modelo de IA tem que se ater mais a instrução do que busca e raciocínio
 * Não gere imagens
 * Componentização, e estrutura do front-end
+* Melhorar uso da janela de contexto e utilização de modelos rápidos para o planejamento e modelos mais pensativos para implementação

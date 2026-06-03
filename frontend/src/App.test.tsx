@@ -33,13 +33,86 @@ describe("App", () => {
     expect(downloadOption).toHaveAttribute("aria-pressed", "true");
     expect(conversionOption).toHaveAttribute("aria-pressed", "false");
     expect(screen.getByRole("heading", { name: /public url workspace/i })).toBeInTheDocument();
-    expect(screen.getByLabelText(/url form placeholder/i)).toBeInTheDocument();
+    expect(screen.getByRole("form", { name: /url download form/i })).toBeInTheDocument();
 
     fireEvent.click(conversionOption);
 
     expect(conversionOption).toHaveAttribute("aria-pressed", "true");
     expect(screen.getByRole("heading", { name: /mp4-to-mp3 workspace/i })).toBeInTheDocument();
     expect(screen.getByRole("form", { name: /mp4 upload form/i })).toBeInTheDocument();
+  });
+
+  it("shows required-url feedback when submitting without a URL", () => {
+    render(<App />);
+
+    fireEvent.click(screen.getByRole("button", { name: /public url download/i }));
+    fireEvent.click(screen.getByRole("button", { name: /prepare download/i }));
+
+    expect(screen.getByRole("alert")).toHaveTextContent(/enter a url before continuing/i);
+  });
+
+  it("shows invalid-url feedback when submitting an invalid URL format", () => {
+    render(<App />);
+
+    fireEvent.click(screen.getByRole("button", { name: /public url download/i }));
+
+    const input = screen.getByRole("textbox", { name: /public url/i });
+    fireEvent.change(input, { target: { value: "not-a-url" } });
+    fireEvent.click(screen.getByRole("button", { name: /prepare download/i }));
+
+    expect(screen.getByRole("alert")).toHaveTextContent(
+      /enter a valid http or https url to continue/i,
+    );
+  });
+
+  it("shows responsibility notice and submit-ready state with a valid URL", () => {
+    render(<App />);
+
+    fireEvent.click(screen.getByRole("button", { name: /public url download/i }));
+
+    expect(
+      screen.getByText(
+        /by submitting this url, you confirm that you have the right to download this media and agree to our terms of service/i,
+      ),
+    ).toBeInTheDocument();
+
+    const input = screen.getByRole("textbox", { name: /public url/i });
+    fireEvent.change(input, { target: { value: "https://example.com/video.mp4" } });
+    fireEvent.click(screen.getByRole("button", { name: /prepare download/i }));
+
+    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+    expect(
+      screen.getByText(/this url is ready for the later download submission step/i),
+    ).toBeInTheDocument();
+  });
+
+  it("resets URL feedback and ready state when input changes", () => {
+    render(<App />);
+
+    fireEvent.click(screen.getByRole("button", { name: /public url download/i }));
+
+    const input = screen.getByRole("textbox", { name: /public url/i });
+
+    // Trigger required feedback
+    fireEvent.click(screen.getByRole("button", { name: /prepare download/i }));
+    expect(screen.getByRole("alert")).toHaveTextContent(/enter a url before continuing/i);
+
+    // Typing should clear feedback
+    fireEvent.change(input, { target: { value: "h" } });
+    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+
+    // Trigger ready state
+    fireEvent.change(input, { target: { value: "https://example.com/media" } });
+    fireEvent.click(screen.getByRole("button", { name: /prepare download/i }));
+    expect(
+      screen.getByText(/this url is ready for the later download submission step/i),
+    ).toBeInTheDocument();
+
+    // Typing again should clear the ready message
+    fireEvent.change(input, { target: { value: "https://example.com/other" } });
+    expect(
+      screen.queryByText(/this url is ready for the later download submission step/i),
+    ).not.toBeInTheDocument();
   });
 
   it("shows required-file feedback when submitting without a selected file", () => {

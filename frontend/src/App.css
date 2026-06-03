@@ -205,6 +205,17 @@ h2 {
   padding: 12px 14px;
 }
 
+.responsibility-notice {
+  margin: 0;
+  border-left: 3px solid #2f6f68;
+  border-radius: 4px;
+  background: #f0f5f4;
+  color: #53625d;
+  font-size: 0.85rem;
+  line-height: 1.55;
+  padding: 12px 14px;
+}
+
 .selected-file,
 .ready-surface {
   border: 1px solid #d7ded8;

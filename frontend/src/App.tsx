@@ -5,6 +5,12 @@ const REQUIRED_FILE_MESSAGE = "Choose an MP4 file before continuing.";
 const INVALID_FILE_MESSAGE = "Select an MP4 file to continue.";
 const READY_FILE_MESSAGE = "This MP4 is ready for the later conversion submission step.";
 
+const REQUIRED_URL_MESSAGE = "Enter a URL before continuing.";
+const INVALID_URL_MESSAGE = "Enter a valid HTTP or HTTPS URL to continue.";
+const READY_URL_MESSAGE = "This URL is ready for the later download submission step.";
+const RESPONSIBILITY_NOTICE =
+  "By submitting this URL, you confirm that you have the right to download this media and agree to our Terms of Service.";
+
 const OPERATIONS = {
   conversion: {
     label: "MP4-to-MP3 conversion",
@@ -18,9 +24,7 @@ const OPERATIONS = {
     eyebrow: "URL download",
     title: "Public URL workspace",
     description:
-      "A dedicated area for the future public URL entry flow and download progress.",
-    placeholder: "URL form placeholder",
-    nextTask: "Task 011 will attach URL entry and request state here.",
+      "Enter a public URL to prepare a media download request.",
   },
 } as const;
 
@@ -28,6 +32,15 @@ type OperationKey = keyof typeof OPERATIONS;
 
 function isMp4File(file: File) {
   return file.type === "video/mp4" || file.name.toLowerCase().endsWith(".mp4");
+}
+
+function isValidUrl(input: string): boolean {
+  try {
+    const url = new URL(input);
+    return url.protocol === "http:" || url.protocol === "https:";
+  } catch {
+    return false;
+  }
 }
 
 function formatFileSize(bytes: number) {
@@ -53,6 +66,9 @@ export function App() {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [fileFeedback, setFileFeedback] = useState<string | null>(null);
   const [readyMessage, setReadyMessage] = useState<string | null>(null);
+  const [urlInput, setUrlInput] = useState("");
+  const [urlFeedback, setUrlFeedback] = useState<string | null>(null);
+  const [urlReadyMessage, setUrlReadyMessage] = useState<string | null>(null);
   const activeOperation = OPERATIONS[selectedOperation];
 
   function handleFileChange(event: React.ChangeEvent<HTMLInputElement>) {
@@ -87,6 +103,31 @@ export function App() {
 
     setFileFeedback(null);
     setReadyMessage(READY_FILE_MESSAGE);
+  }
+
+  function handleUrlChange(event: React.ChangeEvent<HTMLInputElement>) {
+    setUrlInput(event.target.value);
+    setUrlFeedback(null);
+    setUrlReadyMessage(null);
+  }
+
+  function handleUrlSubmit(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+
+    if (!urlInput.trim()) {
+      setUrlReadyMessage(null);
+      setUrlFeedback(REQUIRED_URL_MESSAGE);
+      return;
+    }
+
+    if (!isValidUrl(urlInput)) {
+      setUrlReadyMessage(null);
+      setUrlFeedback(INVALID_URL_MESSAGE);
+      return;
+    }
+
+    setUrlFeedback(null);
+    setUrlReadyMessage(READY_URL_MESSAGE);
   }
 
   return (
@@ -162,10 +203,39 @@ export function App() {
               </button>
             </form>
           ) : (
-            <div className="placeholder-surface" aria-label={OPERATIONS.download.placeholder}>
-              <span>{OPERATIONS.download.placeholder}</span>
-              <p>{OPERATIONS.download.nextTask}</p>
-            </div>
+            <form
+              aria-label="URL download form"
+              className="upload-form"
+              onSubmit={handleUrlSubmit}
+            >
+              <label className="file-control" htmlFor="download-url">
+                <span>Public URL</span>
+                <input
+                  id="download-url"
+                  name="url"
+                  onChange={handleUrlChange}
+                  placeholder="https://example.com/media"
+                  type="text"
+                  value={urlInput}
+                />
+              </label>
+
+              {urlFeedback ? (
+                <p className="form-feedback" role="alert">
+                  {urlFeedback}
+                </p>
+              ) : null}
+
+              <p className="responsibility-notice">{RESPONSIBILITY_NOTICE}</p>
+
+              <div className="ready-surface" aria-live="polite">
+                {urlReadyMessage ?? "Enter a valid public URL to prepare the download request."}
+              </div>
+
+              <button className="submit-button" type="submit">
+                Prepare download
+              </button>
+            </form>
           )}
         </article>
 
