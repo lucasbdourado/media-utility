@@ -58,3 +58,5 @@ On Windows PowerShell:
 * Não gere imagens
 * Componentização, e estrutura do front-end
 * Melhorar uso da janela de contexto e utilização de modelos rápidos para o planejamento e modelos mais pensativos para implementação
+* Não validar o código que não foi comitado, tudo isso deve ser feito durante a fase de planejamento da task, o modelo deve somente executar o plano conforme o plano, onde terá código e direcionamento. 
+* Adicionar e incluir mcps na fase de planejamento 
