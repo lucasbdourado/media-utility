@@ -53,4 +53,6 @@ On Windows PowerShell:
 * Criação de rule, ou documento principal para busca de e resposta de padrão de código e arquitetura
 * Não fugir do que foi proposto, se algo está mal esclarecido, pergunte, e as respostas viram documentos
 * Criar ferramentas para testes
-
+* Gerar ADRs se realmente for necessário
+* Modelo de IA tem que se ater mais a instrução do que busca e raciocínio
+* Não gere imagens
