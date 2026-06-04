@@ -23,10 +23,13 @@ import org.mockito.ArgumentCaptor;
 import com.lucasdourado.mediautility.media.download.DownloadException;
 import com.lucasdourado.mediautility.media.download.UrlDownloader;
 import com.lucasdourado.mediautility.operations.Operation;
+import com.lucasdourado.mediautility.operations.OperationEvent;
+import com.lucasdourado.mediautility.operations.OperationEventType;
 import com.lucasdourado.mediautility.operations.OperationStatus;
 import com.lucasdourado.mediautility.operations.OperationType;
 import com.lucasdourado.mediautility.operations.ResultFileMetadata;
 import com.lucasdourado.mediautility.persistence.OperationRepository;
+import com.lucasdourado.mediautility.persistence.OperationEventRepository;
 import com.lucasdourado.mediautility.storage.TemporaryStorageService;
 
 class BackgroundDownloadExecutorTest {
@@ -34,6 +37,7 @@ class BackgroundDownloadExecutorTest {
 	private static final Instant NOW = Instant.parse("2026-06-03T12:00:00Z");
 
 	private OperationRepository operationRepository;
+	private OperationEventRepository operationEventRepository;
 	private UrlDownloader urlDownloader;
 	private TemporaryStorageService temporaryStorageService;
 	private BackgroundDownloadExecutor executor;
@@ -41,10 +45,12 @@ class BackgroundDownloadExecutorTest {
 	@BeforeEach
 	void setUp() {
 		operationRepository = mock(OperationRepository.class);
+		operationEventRepository = mock(OperationEventRepository.class);
 		urlDownloader = mock(UrlDownloader.class);
 		temporaryStorageService = mock(TemporaryStorageService.class);
 		executor = new BackgroundDownloadExecutor(
 				operationRepository,
+				operationEventRepository,
 				urlDownloader,
 				temporaryStorageService,
 				Duration.ofHours(1));
@@ -77,6 +83,14 @@ class BackgroundDownloadExecutorTest {
 
 		ArgumentCaptor<Path> pathCaptor = ArgumentCaptor.forClass(Path.class);
 		verify(urlDownloader).download(eq(url), pathCaptor.capture());
+
+		// Verify COMPLETED event was saved
+		ArgumentCaptor<OperationEvent> eventCaptor = ArgumentCaptor.forClass(OperationEvent.class);
+		verify(operationEventRepository).save(eventCaptor.capture());
+		OperationEvent capturedEvent = eventCaptor.getValue();
+		assertThat(capturedEvent.getOperation()).isEqualTo(operation);
+		assertThat(capturedEvent.getEventType()).isEqualTo(OperationEventType.COMPLETED);
+		assertThat(capturedEvent.getOccurredAt()).isNotNull();
 
 		Path tempFileUsed = pathCaptor.getValue();
 		assertThat(Files.exists(tempFileUsed)).isFalse();
@@ -117,6 +131,13 @@ class BackgroundDownloadExecutorTest {
 			executor.executeDownload((long) i, url);
 
 			verify(temporaryStorageService).storeResult(eq(String.valueOf(i)), eq(expectedName), eq("video/mp4"), any(InputStream.class));
+
+			// Verify COMPLETED event was saved for this operation
+			ArgumentCaptor<OperationEvent> eventCaptor = ArgumentCaptor.forClass(OperationEvent.class);
+			verify(operationEventRepository, times(i + 1)).save(eventCaptor.capture());
+			OperationEvent capturedEvent = eventCaptor.getAllValues().get(i);
+			assertThat(capturedEvent.getOperation()).isEqualTo(operation);
+			assertThat(capturedEvent.getEventType()).isEqualTo(OperationEventType.COMPLETED);
 		}
 	}
 
@@ -142,5 +163,14 @@ class BackgroundDownloadExecutorTest {
 		assertThat(savedStatuses).containsExactly(OperationStatus.PROCESSING, OperationStatus.FAILED);
 		assertThat(operation.getStatus()).isEqualTo(OperationStatus.FAILED);
 		assertThat(operation.getFailureReason()).isEqualTo("yt-dlp exited with non-zero exit code");
+
+		// Verify FAILED event was saved
+		ArgumentCaptor<OperationEvent> eventCaptor = ArgumentCaptor.forClass(OperationEvent.class);
+		verify(operationEventRepository).save(eventCaptor.capture());
+		OperationEvent capturedEvent = eventCaptor.getValue();
+		assertThat(capturedEvent.getOperation()).isEqualTo(operation);
+		assertThat(capturedEvent.getEventType()).isEqualTo(OperationEventType.FAILED);
+		assertThat(capturedEvent.getOccurredAt()).isNotNull();
+		assertThat(capturedEvent.getFailureReason()).isEqualTo("yt-dlp exited with non-zero exit code");
 	}
 }

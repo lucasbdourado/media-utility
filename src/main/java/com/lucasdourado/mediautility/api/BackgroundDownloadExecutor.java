@@ -17,8 +17,10 @@ import org.springframework.stereotype.Component;
 
 import com.lucasdourado.mediautility.media.download.UrlDownloader;
 import com.lucasdourado.mediautility.operations.Operation;
+import com.lucasdourado.mediautility.operations.OperationEvent;
 import com.lucasdourado.mediautility.operations.ResultFileMetadata;
 import com.lucasdourado.mediautility.persistence.OperationRepository;
+import com.lucasdourado.mediautility.persistence.OperationEventRepository;
 import com.lucasdourado.mediautility.storage.TemporaryStorageService;
 
 /**
@@ -31,16 +33,19 @@ public class BackgroundDownloadExecutor {
 	private static final Logger log = LoggerFactory.getLogger(BackgroundDownloadExecutor.class);
 
 	private final OperationRepository operationRepository;
+	private final OperationEventRepository operationEventRepository;
 	private final UrlDownloader urlDownloader;
 	private final TemporaryStorageService temporaryStorageService;
 	private final Duration retentionDuration;
 
 	public BackgroundDownloadExecutor(
 			OperationRepository operationRepository,
+			OperationEventRepository operationEventRepository,
 			UrlDownloader urlDownloader,
 			TemporaryStorageService temporaryStorageService,
 			@Value("${media-utility.storage.retention:1h}") Duration retentionDuration) {
 		this.operationRepository = operationRepository;
+		this.operationEventRepository = operationEventRepository;
 		this.urlDownloader = urlDownloader;
 		this.temporaryStorageService = temporaryStorageService;
 		this.retentionDuration = retentionDuration;
@@ -75,6 +80,7 @@ public class BackgroundDownloadExecutor {
 			Instant expiresAt = completedAt.plus(retentionDuration);
 			operation.complete(resultMetadata, completedAt, expiresAt);
 			operationRepository.save(operation);
+			operationEventRepository.save(OperationEvent.completed(operation, completedAt));
 			log.info("Successfully completed download for operation {}", operationId);
 		}
 		catch (Exception e) {
@@ -83,6 +89,7 @@ public class BackgroundDownloadExecutor {
 			String reason = e.getMessage() != null ? e.getMessage() : e.getClass().getName();
 			operation.fail(reason, completedAt);
 			operationRepository.save(operation);
+			operationEventRepository.save(OperationEvent.failed(operation, completedAt, reason));
 		}
 		finally {
 			if (tempTarget != null) {

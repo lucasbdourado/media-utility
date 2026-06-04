@@ -34,10 +34,13 @@ import com.lucasdourado.mediautility.media.conversion.Mp4ValidationException;
 import com.lucasdourado.mediautility.media.download.UrlDownloadValidator;
 import com.lucasdourado.mediautility.media.download.UrlValidationException;
 import com.lucasdourado.mediautility.operations.Operation;
+import com.lucasdourado.mediautility.operations.OperationEvent;
+import com.lucasdourado.mediautility.operations.OperationEventType;
 import com.lucasdourado.mediautility.operations.OperationStatus;
 import com.lucasdourado.mediautility.operations.OperationType;
 import com.lucasdourado.mediautility.operations.ResultFileMetadata;
 import com.lucasdourado.mediautility.persistence.OperationRepository;
+import com.lucasdourado.mediautility.persistence.OperationEventRepository;
 import com.lucasdourado.mediautility.storage.TemporaryStorageService;
 import java.net.URI;
 import org.springframework.http.MediaType;
@@ -48,6 +51,7 @@ class OperationServiceTest {
 	private final Clock clock = Clock.fixed(NOW, ZoneId.of("UTC"));
 
 	private OperationRepository operationRepository;
+	private OperationEventRepository operationEventRepository;
 	private Mp4UploadValidator mp4UploadValidator;
 	private UrlDownloadValidator urlDownloadValidator;
 	private BackgroundConversionExecutor backgroundConversionExecutor;
@@ -58,12 +62,21 @@ class OperationServiceTest {
 	@BeforeEach
 	void setUp() {
 		operationRepository = mock(OperationRepository.class);
+		operationEventRepository = mock(OperationEventRepository.class);
 		mp4UploadValidator = mock(Mp4UploadValidator.class);
 		urlDownloadValidator = mock(UrlDownloadValidator.class);
 		backgroundConversionExecutor = mock(BackgroundConversionExecutor.class);
 		backgroundDownloadExecutor = mock(BackgroundDownloadExecutor.class);
 		temporaryStorageService = mock(TemporaryStorageService.class);
-		operationService = new OperationService(operationRepository, mp4UploadValidator, urlDownloadValidator, backgroundConversionExecutor, backgroundDownloadExecutor, temporaryStorageService, clock);
+		operationService = new OperationService(
+				operationRepository,
+				operationEventRepository,
+				mp4UploadValidator,
+				urlDownloadValidator,
+				backgroundConversionExecutor,
+				backgroundDownloadExecutor,
+				temporaryStorageService,
+				clock);
 	}
 
 	@Nested
@@ -94,6 +107,14 @@ class OperationServiceTest {
 			Operation capturedOperation = operationCaptor.getValue();
 			assertThat(capturedOperation.getType()).isEqualTo(OperationType.CONVERSION);
 			assertThat(capturedOperation.getStatus()).isEqualTo(OperationStatus.PENDING);
+
+			// Verify STARTED event was saved
+			ArgumentCaptor<OperationEvent> eventCaptor = ArgumentCaptor.forClass(OperationEvent.class);
+			verify(operationEventRepository).save(eventCaptor.capture());
+			OperationEvent capturedEvent = eventCaptor.getValue();
+			assertThat(capturedEvent.getOperation()).isEqualTo(savedOperation);
+			assertThat(capturedEvent.getEventType()).isEqualTo(OperationEventType.STARTED);
+			assertThat(capturedEvent.getOccurredAt()).isEqualTo(NOW);
 
 			// Verify async conversion executor was triggered
 			ArgumentCaptor<Path> pathCaptor = ArgumentCaptor.forClass(Path.class);
@@ -190,6 +211,14 @@ class OperationServiceTest {
 			Operation capturedOperation = operationCaptor.getValue();
 			assertThat(capturedOperation.getType()).isEqualTo(OperationType.URL_DOWNLOAD);
 			assertThat(capturedOperation.getStatus()).isEqualTo(OperationStatus.PENDING);
+
+			// Verify STARTED event was saved
+			ArgumentCaptor<OperationEvent> eventCaptor = ArgumentCaptor.forClass(OperationEvent.class);
+			verify(operationEventRepository).save(eventCaptor.capture());
+			OperationEvent capturedEvent = eventCaptor.getValue();
+			assertThat(capturedEvent.getOperation()).isEqualTo(savedOperation);
+			assertThat(capturedEvent.getEventType()).isEqualTo(OperationEventType.STARTED);
+			assertThat(capturedEvent.getOccurredAt()).isEqualTo(NOW);
 
 			// Verify async download executor was triggered
 			verify(backgroundDownloadExecutor).executeDownload(42L, url);
@@ -297,6 +326,7 @@ class OperationServiceTest {
 			temporaryStorageService = mock(TemporaryStorageService.class);
 			executor = new BackgroundConversionExecutor(
 					operationRepository,
+					operationEventRepository,
 					mp4ToMp3Converter,
 					temporaryStorageService,
 					Duration.ofHours(1));
@@ -332,6 +362,14 @@ class OperationServiceTest {
 			// Verify converter was called
 			verify(mp4ToMp3Converter).convert(eq(sourcePath), any(Path.class));
 
+			// Verify COMPLETED event was saved
+			ArgumentCaptor<OperationEvent> eventCaptor = ArgumentCaptor.forClass(OperationEvent.class);
+			verify(operationEventRepository).save(eventCaptor.capture());
+			OperationEvent capturedEvent = eventCaptor.getValue();
+			assertThat(capturedEvent.getOperation()).isEqualTo(operation);
+			assertThat(capturedEvent.getEventType()).isEqualTo(OperationEventType.COMPLETED);
+			assertThat(capturedEvent.getOccurredAt()).isNotNull();
+
 			// Verify temp files cleaned up
 			assertThat(Files.exists(sourcePath)).isFalse();
 		}
@@ -360,6 +398,15 @@ class OperationServiceTest {
 			assertThat(savedStatuses).containsExactly(OperationStatus.PROCESSING, OperationStatus.FAILED);
 			assertThat(operation.getStatus()).isEqualTo(OperationStatus.FAILED);
 			assertThat(operation.getFailureReason()).isEqualTo("FFmpeg failed");
+
+			// Verify FAILED event was saved
+			ArgumentCaptor<OperationEvent> eventCaptor = ArgumentCaptor.forClass(OperationEvent.class);
+			verify(operationEventRepository).save(eventCaptor.capture());
+			OperationEvent capturedEvent = eventCaptor.getValue();
+			assertThat(capturedEvent.getOperation()).isEqualTo(operation);
+			assertThat(capturedEvent.getEventType()).isEqualTo(OperationEventType.FAILED);
+			assertThat(capturedEvent.getOccurredAt()).isNotNull();
+			assertThat(capturedEvent.getFailureReason()).isEqualTo("FFmpeg failed");
 
 			// Verify source file cleaned up
 			assertThat(Files.exists(sourcePath)).isFalse();

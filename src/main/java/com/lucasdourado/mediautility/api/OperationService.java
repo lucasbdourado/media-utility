@@ -25,10 +25,12 @@ import com.lucasdourado.mediautility.media.conversion.Mp4ValidationException;
 import com.lucasdourado.mediautility.media.download.UrlDownloadValidator;
 import com.lucasdourado.mediautility.media.download.UrlValidationException;
 import com.lucasdourado.mediautility.operations.Operation;
+import com.lucasdourado.mediautility.operations.OperationEvent;
 import com.lucasdourado.mediautility.operations.OperationStatus;
 import com.lucasdourado.mediautility.operations.OperationType;
 import com.lucasdourado.mediautility.operations.ResultFileMetadata;
 import com.lucasdourado.mediautility.persistence.OperationRepository;
+import com.lucasdourado.mediautility.persistence.OperationEventRepository;
 
 /**
  * Implementation of the OperationApiPort boundary, coordinating MP4 to MP3 conversion
@@ -40,6 +42,7 @@ public class OperationService implements OperationApiPort {
 	private static final Logger log = LoggerFactory.getLogger(OperationService.class);
 
 	private final OperationRepository operationRepository;
+	private final OperationEventRepository operationEventRepository;
 	private final Mp4UploadValidator mp4UploadValidator;
 	private final UrlDownloadValidator urlDownloadValidator;
 	private final BackgroundConversionExecutor backgroundConversionExecutor;
@@ -50,16 +53,18 @@ public class OperationService implements OperationApiPort {
 	@Autowired
 	public OperationService(
 			OperationRepository operationRepository,
+			OperationEventRepository operationEventRepository,
 			Mp4UploadValidator mp4UploadValidator,
 			UrlDownloadValidator urlDownloadValidator,
 			BackgroundConversionExecutor backgroundConversionExecutor,
 			BackgroundDownloadExecutor backgroundDownloadExecutor,
 			TemporaryStorageService temporaryStorageService) {
-		this(operationRepository, mp4UploadValidator, urlDownloadValidator, backgroundConversionExecutor, backgroundDownloadExecutor, temporaryStorageService, Clock.systemUTC());
+		this(operationRepository, operationEventRepository, mp4UploadValidator, urlDownloadValidator, backgroundConversionExecutor, backgroundDownloadExecutor, temporaryStorageService, Clock.systemUTC());
 	}
 
 	OperationService(
 			OperationRepository operationRepository,
+			OperationEventRepository operationEventRepository,
 			Mp4UploadValidator mp4UploadValidator,
 			UrlDownloadValidator urlDownloadValidator,
 			BackgroundConversionExecutor backgroundConversionExecutor,
@@ -67,6 +72,7 @@ public class OperationService implements OperationApiPort {
 			TemporaryStorageService temporaryStorageService,
 			Clock clock) {
 		this.operationRepository = operationRepository;
+		this.operationEventRepository = operationEventRepository;
 		this.mp4UploadValidator = mp4UploadValidator;
 		this.urlDownloadValidator = urlDownloadValidator;
 		this.backgroundConversionExecutor = backgroundConversionExecutor;
@@ -87,6 +93,7 @@ public class OperationService implements OperationApiPort {
 		Instant createdAt = clock.instant();
 		Operation operation = Operation.create(OperationType.CONVERSION, createdAt);
 		operation = operationRepository.save(operation);
+		operationEventRepository.save(OperationEvent.started(operation, createdAt));
 
 		Path tempSource = null;
 		try {
@@ -129,6 +136,7 @@ public class OperationService implements OperationApiPort {
 		Instant createdAt = clock.instant();
 		Operation operation = Operation.create(OperationType.URL_DOWNLOAD, createdAt);
 		operation = operationRepository.save(operation);
+		operationEventRepository.save(OperationEvent.started(operation, createdAt));
 
 		backgroundDownloadExecutor.executeDownload(operation.getId(), url);
 

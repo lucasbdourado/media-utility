@@ -16,8 +16,10 @@ import org.springframework.stereotype.Component;
 
 import com.lucasdourado.mediautility.media.conversion.Mp4ToMp3Converter;
 import com.lucasdourado.mediautility.operations.Operation;
+import com.lucasdourado.mediautility.operations.OperationEvent;
 import com.lucasdourado.mediautility.operations.ResultFileMetadata;
 import com.lucasdourado.mediautility.persistence.OperationRepository;
+import com.lucasdourado.mediautility.persistence.OperationEventRepository;
 import com.lucasdourado.mediautility.storage.TemporaryStorageService;
 
 /**
@@ -30,16 +32,19 @@ public class BackgroundConversionExecutor {
 	private static final Logger log = LoggerFactory.getLogger(BackgroundConversionExecutor.class);
 
 	private final OperationRepository operationRepository;
+	private final OperationEventRepository operationEventRepository;
 	private final Mp4ToMp3Converter mp4ToMp3Converter;
 	private final TemporaryStorageService temporaryStorageService;
 	private final Duration retentionDuration;
 
 	public BackgroundConversionExecutor(
 			OperationRepository operationRepository,
+			OperationEventRepository operationEventRepository,
 			Mp4ToMp3Converter mp4ToMp3Converter,
 			TemporaryStorageService temporaryStorageService,
 			@Value("${media-utility.storage.retention:1h}") Duration retentionDuration) {
 		this.operationRepository = operationRepository;
+		this.operationEventRepository = operationEventRepository;
 		this.mp4ToMp3Converter = mp4ToMp3Converter;
 		this.temporaryStorageService = temporaryStorageService;
 		this.retentionDuration = retentionDuration;
@@ -74,6 +79,7 @@ public class BackgroundConversionExecutor {
 			Instant expiresAt = completedAt.plus(retentionDuration);
 			operation.complete(resultMetadata, completedAt, expiresAt);
 			operationRepository.save(operation);
+			operationEventRepository.save(OperationEvent.completed(operation, completedAt));
 			log.info("Successfully completed conversion for operation {}", operationId);
 		}
 		catch (Exception e) {
@@ -82,6 +88,7 @@ public class BackgroundConversionExecutor {
 			String reason = e.getMessage() != null ? e.getMessage() : e.getClass().getName();
 			operation.fail(reason, completedAt);
 			operationRepository.save(operation);
+			operationEventRepository.save(OperationEvent.failed(operation, completedAt, reason));
 		}
 		finally {
 			deleteFileQuietly(sourcePath);
