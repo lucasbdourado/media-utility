@@ -65,6 +65,23 @@ describe("App", () => {
     );
   });
 
+  it("rejects non-HTTP URL protocols", () => {
+    render(<App />);
+
+    fireEvent.click(screen.getByRole("button", { name: /public url download/i }));
+
+    const input = screen.getByRole("textbox", { name: /public url/i });
+    fireEvent.change(input, { target: { value: "ftp://example.com/video.mp4" } });
+    fireEvent.click(screen.getByRole("button", { name: /prepare download/i }));
+
+    expect(screen.getByRole("alert")).toHaveTextContent(
+      /enter a valid http or https url to continue/i,
+    );
+    expect(
+      screen.queryByText(/this url is ready for the later download submission step/i),
+    ).not.toBeInTheDocument();
+  });
+
   it("shows responsibility notice and submit-ready state with a valid URL", () => {
     render(<App />);
 
@@ -78,6 +95,21 @@ describe("App", () => {
 
     const input = screen.getByRole("textbox", { name: /public url/i });
     fireEvent.change(input, { target: { value: "https://example.com/video.mp4" } });
+    fireEvent.click(screen.getByRole("button", { name: /prepare download/i }));
+
+    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+    expect(
+      screen.getByText(/this url is ready for the later download submission step/i),
+    ).toBeInTheDocument();
+  });
+
+  it("accepts valid HTTP URLs for the download ready state", () => {
+    render(<App />);
+
+    fireEvent.click(screen.getByRole("button", { name: /public url download/i }));
+
+    const input = screen.getByRole("textbox", { name: /public url/i });
+    fireEvent.change(input, { target: { value: "http://example.com/video.mp4" } });
     fireEvent.click(screen.getByRole("button", { name: /prepare download/i }));
 
     expect(screen.queryByRole("alert")).not.toBeInTheDocument();
@@ -135,6 +167,40 @@ describe("App", () => {
     expect(screen.getByRole("alert")).toHaveTextContent(/select an mp4 file to continue/i);
     expect(screen.queryByText("notes.txt")).not.toBeInTheDocument();
     expect(screen.queryByText(/ready for the later conversion submission step/i)).not.toBeInTheDocument();
+  });
+
+  it("clears the selected file and ready message when the file input is emptied", () => {
+    render(<App />);
+
+    const input = screen.getByLabelText(/mp4 file/i);
+    const file = new File(["video"], "clip.mp4", { type: "video/mp4" });
+
+    fireEvent.change(input, { target: { files: [file] } });
+    fireEvent.click(screen.getByRole("button", { name: /prepare conversion/i }));
+    expect(
+      screen.getByText(/this mp4 is ready for the later conversion submission step/i),
+    ).toBeInTheDocument();
+
+    fireEvent.change(input, { target: { files: [] } });
+
+    expect(screen.queryByLabelText(/selected mp4 file/i)).not.toBeInTheDocument();
+    expect(
+      screen.queryByText(/this mp4 is ready for the later conversion submission step/i),
+    ).not.toBeInTheDocument();
+    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+  });
+
+  it("accepts files with the video/mp4 MIME type and displays the minimum file size", () => {
+    render(<App />);
+
+    const input = screen.getByLabelText(/mp4 file/i);
+    const file = new File(["video"], "clip.bin", { type: "video/mp4" });
+
+    fireEvent.change(input, { target: { files: [file] } });
+
+    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+    expect(screen.getByLabelText(/selected mp4 file/i)).toHaveTextContent("clip.bin");
+    expect(screen.getByText("0.1 MB")).toBeInTheDocument();
   });
 
   it("shows selected MP4 file information and can reach submit-ready state", () => {
