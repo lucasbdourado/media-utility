@@ -69,6 +69,10 @@ public class Operation {
 		this.failureReason = null;
 	}
 
+	public void clearResultFile() {
+		this.resultFile = null;
+	}
+
 	public void fail(String failureReason, Instant completedAt) {
 		this.status = OperationStatus.FAILED;
 		this.failureReason = failureReason;
