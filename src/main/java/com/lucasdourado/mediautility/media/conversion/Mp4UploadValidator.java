@@ -16,7 +16,7 @@ public class Mp4UploadValidator {
 
 	private final long maxSizeBytes;
 
-	public Mp4UploadValidator(@Value("${media-utility.upload.max-size-bytes:52428800}") long maxSizeBytes) {
+	public Mp4UploadValidator(@Value("${media-utility.upload.max-size-bytes:104857600}") long maxSizeBytes) {
 		this.maxSizeBytes = maxSizeBytes;
 	}
 

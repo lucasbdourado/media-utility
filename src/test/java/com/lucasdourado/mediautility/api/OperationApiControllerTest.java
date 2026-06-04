@@ -8,6 +8,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.options;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
@@ -24,8 +25,10 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
 import org.springframework.core.io.ByteArrayResource;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.mock.web.MockMultipartFile;
+import org.springframework.context.annotation.Import;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
@@ -34,6 +37,7 @@ import com.lucasdourado.mediautility.operations.OperationStatus;
 import com.lucasdourado.mediautility.operations.OperationType;
 
 @WebMvcTest(OperationApiController.class)
+@Import(CorsConfiguration.class)
 class OperationApiControllerTest {
 
 	private static final Instant CREATED_AT = Instant.parse("2026-06-02T12:00:00Z");
@@ -45,6 +49,18 @@ class OperationApiControllerTest {
 
 	@MockitoBean
 	private OperationApiPort operationApiPort;
+
+	@Test
+	void acceptsCorsPreflightFromAnyOrigin() throws Exception {
+		mockMvc.perform(options("/api/operations/downloads")
+						.header(HttpHeaders.ORIGIN, "https://any-origin.example")
+						.header(HttpHeaders.ACCESS_CONTROL_REQUEST_METHOD, "POST")
+						.header(HttpHeaders.ACCESS_CONTROL_REQUEST_HEADERS, "content-type"))
+				.andExpect(status().isOk())
+				.andExpect(header().string(HttpHeaders.ACCESS_CONTROL_ALLOW_ORIGIN, "https://any-origin.example"))
+				.andExpect(header().string(HttpHeaders.ACCESS_CONTROL_ALLOW_METHODS, containsString("POST")))
+				.andExpect(header().string(HttpHeaders.ACCESS_CONTROL_ALLOW_HEADERS, containsString("content-type")));
+	}
 
 	@Test
 	void createsConversionOperationFromMultipartFile() throws Exception {
