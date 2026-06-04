@@ -28,7 +28,7 @@ The implementation is broken down into small, sequential increments:
 3. **API & UI (008-011)**: REST API contracts, UI form states, and views.
 4. **Core Features (012-019)**: MP4 upload/convert flow, URL download flow, download delivery, and file cleanup.
 5. **Operational Features (020-022)**: Metric tracking, Docker packaging, Docker Compose environment.
-6. **Testing & Handoff (023-026)**: Backend/frontend test coverage, critical E2E flows, runtime documentation.
+6. **Testing & Handoff (023-027)**: Backend/frontend test coverage, frontend/backend operation integration, critical E2E flows, runtime documentation.
 
 ## Task List
 
@@ -58,16 +58,17 @@ The implementation is broken down into small, sequential increments:
 | 022 | [022-add-local-development-compose-setup.md](file:///c:/Users/lucas.dourado/IdeaProjects/media-utility/docs/tasks/mvp-media-utility/022-add-local-development-compose-setup.md) | Orchestrate app & database locally | 021 | Depends on Previous Task |
 | 023 | [023-add-backend-test-coverage.md](file:///c:/Users/lucas.dourado/IdeaProjects/media-utility/docs/tasks/mvp-media-utility/023-add-backend-test-coverage.md) | Integrate Jacoco and achieve 80% coverage | 020 | Depends on Previous Task |
 | 024 | [024-add-frontend-test-coverage.md](file:///c:/Users/lucas.dourado/IdeaProjects/media-utility/docs/tasks/mvp-media-utility/024-add-frontend-test-coverage.md) | Enable Vitest coverage and achieve 80% coverage | 011 | Depends on Previous Task |
-| 025 | [025-add-critical-e2e-flow-tests.md](file:///c:/Users/lucas.dourado/IdeaProjects/media-utility/docs/tasks/mvp-media-utility/025-add-critical-e2e-flow-tests.md) | Implement Playwright critical flow tests | 022, 014, 017 | Depends on Previous Task |
-| 026 | [026-document-mvp-runtime-and-operational-notes.md](file:///c:/Users/lucas.dourado/IdeaProjects/media-utility/docs/tasks/mvp-media-utility/026-document-mvp-runtime-and-operational-notes.md) | Document configurations, environments and limits | All tasks | Depends on Previous Task |
+| 025 | [025-integrate-frontend-with-operation-apis.md](file:///c:/Users/lucas.dourado/IdeaProjects/media-utility/docs/tasks/mvp-media-utility/025-integrate-frontend-with-operation-apis.md) | Integrate frontend flows with backend operation APIs | 014, 017, 018 | Depends on Previous Task |
+| 026 | [026-add-critical-e2e-flow-tests.md](file:///c:/Users/lucas.dourado/IdeaProjects/media-utility/docs/tasks/mvp-media-utility/026-add-critical-e2e-flow-tests.md) | Implement Playwright critical flow tests | 025, 022, 014, 017 | Blocked until 025 is completed |
+| 027 | [027-document-mvp-runtime-and-operational-notes.md](file:///c:/Users/lucas.dourado/IdeaProjects/media-utility/docs/tasks/mvp-media-utility/027-document-mvp-runtime-and-operational-notes.md) | Document configurations, environments and limits | All tasks | Depends on Previous Task |
 
 ## Execution Order
 
-The tasks should be executed sequentially matching their numerical order (001 -> 026). This ensures that structural layout and baseline requirements are met before integrating media dependencies, Docker configs, testing pipelines, and operational notes.
+The tasks should be executed sequentially matching their numerical order (001 -> 027). This ensures that structural layout and baseline requirements are met before integrating media dependencies, Docker configs, frontend/backend operation flows, testing pipelines, and operational notes.
 
 ## Blocked Tasks
 
-There are no currently blocked tasks due to missing product decisions. Packaging, composing, coverage tools, and E2E tests are technically defined.
+MVP-MEDIA-026 is blocked until MVP-MEDIA-025 is implemented. Critical Playwright E2E tests require the UI to submit operations to backend APIs, render backend-driven operation states, and expose public result download links.
 
 ## Open Questions
 
