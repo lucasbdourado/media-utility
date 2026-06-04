@@ -1,0 +1,10 @@
+.git
+.gitignore
+.gitmodules
+.idea
+.agents
+.codex
+**/node_modules
+**/dist
+target/
+*.log
