@@ -121,6 +121,69 @@
 				<groupId>org.springframework.boot</groupId>
 				<artifactId>spring-boot-maven-plugin</artifactId>
 			</plugin>
+		<plugin>
+			<groupId>org.jacoco</groupId>
+			<artifactId>jacoco-maven-plugin</artifactId>
+			<version>LATEST_STABLE_VERSION</version>
+			<executions>
+				<execution>
+					<id>prepare-agent</id>
+					<goals>
+						<goal>prepare-agent</goal>
+					</goals>
+				</execution>
+				<execution>
+					<id>report</id>
+					<phase>verify</phase>
+					<goals>
+						<goal>report</goal>
+					</goals>
+				</execution>
+			</executions>
+			<configuration>
+				<excludes>
+					<exclude>com/lucasdourado/mediautility/MediaUtilityApplication.class</exclude>
+					<exclude>com/lucasdourado/mediautility/operations/Operation.class</exclude>
+					<exclude>com/lucasdourado/mediautility/operations/OperationEvent.class</exclude>
+					<exclude>com/lucasdourado/mediautility/operations/ResultFileMetadata.class</exclude>
+					<exclude>com/lucasdourado/mediautility/operations/OperationStatus.class</exclude>
+					<exclude>com/lucasdourado/mediautility/operations/OperationType.class</exclude>
+					<exclude>com/lucasdourado/mediautility/operations/OperationEventType.class</exclude>
+					<exclude>com/lucasdourado/mediautility/api/PublicErrorCode.class</exclude>
+					<exclude>com/lucasdourado/mediautility/persistence/OperationRepository.class</exclude>
+					<exclude>com/lucasdourado/mediautility/persistence/OperationEventRepository.class</exclude>
+					<exclude>com/lucasdourado/mediautility/api/OperationLinks.class</exclude>
+					<exclude>com/lucasdourado/mediautility/api/PublicErrorDetail.class</exclude>
+					<exclude>com/lucasdourado/mediautility/api/PublicErrorResponse.class</exclude>
+					<exclude>com/lucasdourado/mediautility/api/PublicOperationResponse.class</exclude>
+					<exclude>com/lucasdourado/mediautility/api/PublicResultMetadata.class</exclude>
+					<exclude>com/lucasdourado/mediautility/api/UrlDownloadRequest.class</exclude>
+					<exclude>com/lucasdourado/mediautility/media/process/ProcessExecutionRequest.class</exclude>
+					<exclude>com/lucasdourado/mediautility/media/process/ProcessExecutionResult.class</exclude>
+					<exclude>com/lucasdourado/mediautility/api/ApiException.class</exclude>
+					<exclude>com/lucasdourado/mediautility/media/conversion/ConversionException.class</exclude>
+					<exclude>com/lucasdourado/mediautility/media/conversion/Mp4ValidationException.class</exclude>
+					<exclude>com/lucasdourado/mediautility/media/download/DownloadException.class</exclude>
+					<exclude>com/lucasdourado/mediautility/media/download/UrlValidationException.class</exclude>
+					<exclude>com/lucasdourado/mediautility/media/process/ProcessExecutionException.class</exclude>
+					<exclude>com/lucasdourado/mediautility/storage/StorageException.class</exclude>
+					<exclude>com/lucasdourado/mediautility/api/ApiBoundary.class</exclude>
+					<exclude>com/lucasdourado/mediautility/cleanup/CleanupBoundary.class</exclude>
+					<exclude>com/lucasdourado/mediautility/observability/ObservabilityBoundary.class</exclude>
+					<exclude>com/lucasdourado/mediautility/operations/OperationsBoundary.class</exclude>
+					<exclude>com/lucasdourado/mediautility/persistence/PersistenceBoundary.class</exclude>
+					<exclude>com/lucasdourado/mediautility/storage/StorageBoundary.class</exclude>
+					<exclude>com/lucasdourado/mediautility/media/conversion/ConversionBoundary.class</exclude>
+					<exclude>com/lucasdourado/mediautility/media/download/DownloadBoundary.class</exclude>
+					<exclude>com/lucasdourado/mediautility/media/process/ProcessExecutionBoundary.class</exclude>
+					<exclude>com/lucasdourado/mediautility/api/OperationApiPort.class</exclude>
+					<exclude>com/lucasdourado/mediautility/media/conversion/Mp4ToMp3Converter.class</exclude>
+					<exclude>com/lucasdourado/mediautility/media/download/UrlDownloader.class</exclude>
+					<exclude>com/lucasdourado/mediautility/media/process/ProcessExecutor.class</exclude>
+					<exclude>com/lucasdourado/mediautility/storage/TemporaryStorageService.class</exclude>
+				</excludes>
+			</configuration>
+		</plugin>
 		</plugins>
 	</build>
 
