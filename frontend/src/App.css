@@ -217,7 +217,9 @@ h2 {
 }
 
 .selected-file,
-.ready-surface {
+.ready-surface,
+.status-summary,
+.result-surface {
   border: 1px solid #d7ded8;
   border-radius: 8px;
   background: #f8faf7;
@@ -251,6 +253,48 @@ h2 {
   line-height: 1.5;
 }
 
+.status-summary,
+.result-surface {
+  display: grid;
+  gap: 8px;
+  margin-top: 20px;
+}
+
+.status-summary p,
+.result-surface p {
+  margin: 0;
+  color: #53625d;
+  line-height: 1.5;
+}
+
+.status-label,
+.result-surface span {
+  color: #2f6f68;
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0;
+  text-transform: uppercase;
+}
+
+.result-surface strong {
+  overflow-wrap: anywhere;
+}
+
+.result-surface a {
+  width: fit-content;
+  border: 1px solid #2f6f68;
+  border-radius: 8px;
+  background: #ffffff;
+  color: #2f6f68;
+  font-weight: 700;
+  padding: 10px 12px;
+  text-decoration: none;
+}
+
+.result-surface a:hover {
+  background: #f0f5f4;
+}
+
 .submit-button {
   min-height: 46px;
   width: fit-content;
@@ -266,6 +310,11 @@ h2 {
 
 .submit-button:hover {
   background: #255a54;
+}
+
+.submit-button:disabled {
+  cursor: not-allowed;
+  opacity: 0.68;
 }
 
 .status-panel ul {
