@@ -1,0 +1,43 @@
+services:
+  mysql:
+    image: mysql:8.0
+    container_name: media-utility-mysql
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+      MYSQL_DATABASE: ${MYSQL_DATABASE}
+      MYSQL_USER: ${MYSQL_USER}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD}
+    ports:
+      - "${MYSQL_HOST_PORT:-3306}:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: media-utility-app
+    restart: unless-stopped
+    ports:
+      - "${APP_HOST_PORT:-8080}:8080"
+    depends_on:
+      mysql:
+        condition: service_healthy
+    environment:
+      MEDIA_UTILITY_DATASOURCE_URL: jdbc:mysql://mysql:3306/${MYSQL_DATABASE}?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
+      MEDIA_UTILITY_DATASOURCE_USERNAME: ${MYSQL_USER}
+      MEDIA_UTILITY_DATASOURCE_PASSWORD: ${MYSQL_PASSWORD}
+      MEDIA_UTILITY_JPA_DDL_AUTO: ${MEDIA_UTILITY_JPA_DDL_AUTO:-update}
+      MEDIA_UTILITY_STORAGE_ROOT: /app/storage
+    volumes:
+      - ./storage:/app/storage
+
+volumes:
+  mysql_data:

@@ -22,3 +22,9 @@ frontend/dist/
 /.idea
 /.agents
 /AGENTS.md
+
+# Docker Compose local overrides (the template .env.compose IS tracked)
+.env
+
+# Runtime media storage
+storage/

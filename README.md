@@ -75,3 +75,70 @@ docker run --rm --entrypoint ffmpeg media-utility -version
 docker run --rm --entrypoint yt-dlp media-utility --version
 ```
 
+## Running with Docker Compose (Recommended for Local Development)
+
+Docker Compose coordinates the Spring Boot application and a MySQL 8.0 database in a single command, making local development setup straightforward.
+
+### 1. Create Your Local Environment File
+
+Copy the provided template and adjust the values if needed:
+
+```bash
+cp .env.compose .env
+```
+
+The `.env` file is git-ignored. The template `.env.compose` is tracked and contains safe defaults for local development.
+
+### 2. Start the Stack
+
+Build and start both containers in the background:
+
+```bash
+docker compose up --build -d
+```
+
+The application container will wait for MySQL to pass its health check before starting.
+
+### 3. View Application Logs
+
+```bash
+docker compose logs -f app
+```
+
+Look for successful JPA connection and schema update messages to confirm the application booted correctly.
+
+### 4. Access the Application
+
+Open [http://localhost:8080](http://localhost:8080) in your browser (or the port configured as `APP_HOST_PORT` in your `.env` file).
+
+### 5. Stop and Teardown
+
+Stop containers but keep the database volume:
+
+```bash
+docker compose down
+```
+
+Stop containers and delete the database volume (full reset):
+
+```bash
+docker compose down -v
+```
+
+### Customizing Host Ports
+
+If ports `8080` or `3306` are already in use on your machine, edit your `.env` file:
+
+```dotenv
+APP_HOST_PORT=9090
+MYSQL_HOST_PORT=3307
+```
+
+### Linux Host: Storage Directory Permissions
+
+The application container runs as `appuser` (UID `10001`). On Linux hosts, the host-mounted `./storage` directory must be writable by this UID. If you encounter `AccessDeniedException`, create the directory and set ownership:
+
+```bash
+mkdir -p storage
+sudo chown -R 10001:10001 storage
+```
