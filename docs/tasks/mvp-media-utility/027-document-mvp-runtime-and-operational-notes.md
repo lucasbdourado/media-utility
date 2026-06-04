@@ -8,11 +8,11 @@ Last updated: 2026-06-01
 
 ## Task ID
 
-ID: MVP-MEDIA-026
+ID: MVP-MEDIA-027
 
-Order: 026
+Order: 027
 
-Task file: `docs/tasks/mvp-media-utility/026-document-mvp-runtime-and-operational-notes.md`
+Task file: `docs/tasks/mvp-media-utility/027-document-mvp-runtime-and-operational-notes.md`
 
 ## Source Documents
 

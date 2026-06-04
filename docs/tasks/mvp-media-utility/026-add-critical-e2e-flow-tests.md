@@ -4,15 +4,15 @@
 
 Status: Depends on Previous Task
 
-Last updated: 2026-06-03
+Last updated: 2026-06-04
 
 ## Task ID
 
-ID: MVP-MEDIA-025
+ID: MVP-MEDIA-026
 
-Order: 025
+Order: 026
 
-Task file: `docs/tasks/mvp-media-utility/025-add-critical-e2e-flow-tests.md`
+Task file: `docs/tasks/mvp-media-utility/026-add-critical-e2e-flow-tests.md`
 
 ## Source Documents
 
@@ -27,7 +27,7 @@ While unit and integration tests verify individual layers and components in isol
 
 ## Goal
 
-Configure Playwright and write E2E tests for the critical media conversion and URL download user flows against a running instance of the application.
+Configure Playwright and write E2E tests for the critical media conversion and URL download user flows against a running instance of the application after the frontend has been integrated with the backend operation APIs.
 
 ## Scope
 
@@ -41,6 +41,7 @@ Configure Playwright and write E2E tests for the critical media conversion and U
 
 ## Out of Scope
 
+- Integrating the frontend with backend operation APIs; this is handled by MVP-MEDIA-025.
 - Testing external media provider APIs or actual YouTube endpoints (these should be simulated or mocked within the download adapter mock/test mode).
 
 ## Implementation Instructions
@@ -62,6 +63,7 @@ Configure Playwright and write E2E tests for the critical media conversion and U
 
 | Dependency | Type | Status | Notes |
 | --- | --- | --- | --- |
+| MVP-MEDIA-025 | Previous task | Blocking | Requires the UI to submit operations to backend APIs, render backend-driven states, and expose result links. |
 | MVP-MEDIA-022 | Previous task | Pending | Requires the application to be runnable containerized or locally with Docker Compose. |
 | MVP-MEDIA-014 | Previous task | Pending | Requires conversion endpoint to be ready. |
 | MVP-MEDIA-017 | Previous task | Pending | Requires URL download endpoint to be ready. |
@@ -88,7 +90,10 @@ Configure Playwright and write E2E tests for the critical media conversion and U
 ## Open Questions
 
 - Should Playwright be installed in the root folder or within `frontend/`? (Recommended: `frontend/` since it tests the React app).
+- What controlled fixture, mock, or test-mode strategy should be used for stable media operation execution after MVP-MEDIA-025 is complete?
+- Should E2E execution start the local runtime itself or require a pre-running Docker Compose/application instance?
 
 ## Notes for the Implementing Agent
 
+- Do not execute or plan this task as ready until MVP-MEDIA-025 is completed.
 - Ensure mock files (like a small sample MP4) are checked into the test resources folder (e.g. `frontend/e2e/fixtures/`) to facilitate automated testing.
